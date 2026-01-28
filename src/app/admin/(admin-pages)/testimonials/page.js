@@ -72,7 +72,7 @@ export default function TestimonialsManagement() {
               </div>
 
               <p className="text-gray-600 text-sm italic line-clamp-4 flex-1 font-medium leading-relaxed">
-                "{item.content}"
+                &quot;{item.content}&quot;
               </p>
 
               <div className="mt-6 pt-6 border-t border-gray-50 flex items-center justify-between">

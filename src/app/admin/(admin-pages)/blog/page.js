@@ -81,7 +81,7 @@ export default function BlogManagement() {
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-4">
                         <div className="w-16 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 border border-card-border">
-                          {post.image_url && <img src={post.image_url} className="w-full h-full object-cover" />}
+                          {post.image_url && <img src={post.image_url} alt={post.title} className="w-full h-full object-cover" />}
                         </div>
                         <div>
                           <p className="font-bold text-site max-w-sm truncate">{post.title}</p>

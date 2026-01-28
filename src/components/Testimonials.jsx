@@ -27,7 +27,7 @@ export default function Testimonials({ testimonials }) {
                       <span key={i} className="material-symbols-outlined fill-current text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                     ))}
                   </div>
-                  <p className="text-gray-600 mb-8 italic leading-relaxed flex-1">"{t.content}"</p>
+                  <p className="text-gray-600 mb-8 italic leading-relaxed flex-1">&quot;{t.content}&quot;</p>
                   <div className="flex items-center gap-4 mt-auto">
                     <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20 p-0.5">
                       <img className="w-full h-full object-cover rounded-full" alt={t.name} src={t.avatar_url || `https://ui-avatars.com/api/?name=${t.name}&background=random`} />
