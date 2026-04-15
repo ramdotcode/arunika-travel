@@ -36,6 +36,16 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 
+@keyframes custom-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(37, 211, 102, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+}
+
+.animate-whatsapp {
+  animation: custom-pulse 2s infinite;
+}
+
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined' !important;
   font-weight: normal;

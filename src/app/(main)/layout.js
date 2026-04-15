@@ -14,9 +14,14 @@ export default function MainLayout({ children }) {
       
       {/* Floating Mobile WhatsApp */}
       <div className="fixed bottom-6 right-6 z-[60] md:hidden">
-        <button className="bg-[#25D366] text-white p-4 rounded-full shadow-2xl flex items-center justify-center">
+        <a 
+          href="https://wa.me/628111111111" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="bg-[#25D366] text-white p-4 rounded-full shadow-2xl flex items-center justify-center animate-whatsapp"
+        >
           <span className="material-symbols-outlined text-3xl">chat</span>
-        </button>
+        </a>
       </div>
     </div>
   );
