@@ -33,9 +33,9 @@ export default function AdminLayout({ children }) {
 
   const navLinks = [
     { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
-    { name: "Projects", icon: Home, path: "/admin/homepage", hasChild: true },
-    { name: "Tasks", icon: Package, path: "/admin/tours", hasChild: true },
-    { name: "Team", icon: User, path: "/admin/testimonials" },
+    { name: "Homepage", icon: Home, path: "/admin/homepage", hasChild: true },
+    { name: "Tour", icon: Package, path: "/admin/tours", hasChild: true },
+    { name: "User Feedback", icon: User, path: "/admin/testimonials" },
     { name: "Blog", icon: FileText, path: "/admin/blog" },
   ]
 
