@@ -14,19 +14,22 @@ async function getData() {
     { data: tours },
     { data: testimonials },
     { data: faqs },
-    { data: gallery }
+    { data: gallery },
+    { data: settings }
   ] = await Promise.all([
     supabase.from('tours').select('*').order('created_at', { ascending: false }),
     supabase.from('testimonials').select('*').order('created_at', { ascending: false }),
     supabase.from('faqs').select('*').order('order_index', { ascending: true }),
-    supabase.from('gallery').select('*').order('created_at', { ascending: false })
+    supabase.from('gallery').select('*').order('created_at', { ascending: false }),
+    supabase.from('site_settings').select('*').eq('id', 'homepage').single()
   ])
 
   return {
     tours: tours || [],
     testimonials: testimonials || [],
     faqs: faqs || [],
-    gallery: gallery || []
+    gallery: gallery || [],
+    settings: settings?.content || null
   }
 }
 
@@ -36,7 +39,7 @@ export default async function Home() {
 
   return (
     <>
-      <Hero />
+      <Hero settings={data.settings?.hero} />
       <Trust />
       <Features />
       <TourPackages tours={popularTours} title="Paket Tour Populer" showViewAll={true} />
@@ -44,7 +47,7 @@ export default async function Home() {
       <Gallery gallery={data.gallery} />
       <Testimonials testimonials={data.testimonials} />
       <FAQ faqs={data.faqs} />
-      <CTA />
+      <CTA settings={data.settings?.cta} />
     </>
   )
 }

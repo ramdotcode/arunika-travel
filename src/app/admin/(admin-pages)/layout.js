@@ -3,6 +3,20 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { 
+  LayoutDashboard, 
+  Home, 
+  Package, 
+  FileText, 
+  MessageSquare, 
+  Settings, 
+  HelpCircle, 
+  LogOut,
+  ChevronRight,
+  Search,
+  Bell,
+  User
+} from "lucide-react"
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname()
@@ -13,98 +27,113 @@ export default function AdminLayout({ children }) {
     router.push("/admin/login")
   }
 
-  const menuItems = [
-    { name: "Dashboard", icon: "dashboard", path: "/admin/dashboard" },
-    { name: "Paket Tour", icon: "package", path: "/admin/tours" },
-    { name: "Blog Posts", icon: "edit_note", path: "/admin/blog" },
-    { name: "Testimoni", icon: "chat", path: "/admin/testimonials" },
-  ]
+
 
   return (
-    <div className="flex min-h-screen bg-[#f6f6f8]">
+    <div className="flex min-h-screen bg-[#f8f9fb]">
       {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-card-border flex flex-col fixed h-full z-20">
-        <div className="p-8">
-          <Link href="/" className="flex items-center gap-2 mb-10">
-            <div className="text-primary">
-              <svg className="size-8" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 6H42L36 24L42 42H6L12 24L6 6Z" fill="currentColor"></path>
-              </svg>
+      <aside className="w-64 bg-white border-r border-slate-50 flex flex-col fixed h-full z-20">
+        <div className="p-6 flex flex-col h-full">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 mb-10 group cursor-pointer px-2">
+            <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white shadow-lg shadow-slate-900/10 transition-transform group-hover:scale-105">
+              <Package size={18} />
             </div>
-            <h2 className="text-xl font-black tracking-tight text-site">AdminPanel</h2>
+            <span className="font-bold text-lg tracking-tight text-slate-900">Arunika.</span>
           </Link>
 
-          <nav className="space-y-2">
-            {menuItems.map((item) => (
-              <Link
-                key={item.path}
-                href={item.path}
-                className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all ${
-                  pathname === item.path
-                    ? "bg-primary text-white shadow-lg shadow-primary/20 scale-105"
-                    : "text-gray-500 hover:bg-gray-50 hover:text-primary"
-                }`}
-              >
-                <span className="material-symbols-outlined">{item.icon}</span>
-                {item.name}
-              </Link>
-            ))}
+          {/* Navigation */}
+          <nav className="space-y-1 flex-1">
+            {[
+              { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
+              { name: "Projects", icon: Home, path: "/admin/homepage", hasChild: true },
+              { name: "Tasks", icon: Package, path: "/admin/tours", hasChild: true },
+              { name: "Team", icon: User, path: "/admin/testimonials" },
+              { name: "Blog", icon: FileText, path: "/admin/blog" },
+            ].map((item) => {
+              const isActive = pathname === item.path
+              return (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  className={`flex items-center justify-between group px-3 py-2.5 rounded-xl transition-all ${
+                    isActive
+                      ? "bg-slate-50 text-slate-900 font-bold"
+                      : "text-slate-400 hover:bg-slate-50/50 hover:text-slate-900"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <item.icon size={20} className={isActive ? "text-primary" : ""} strokeWidth={isActive ? 2.5 : 2} />
+                    <span className="text-sm">{item.name}</span>
+                  </div>
+                  {item.hasChild ? (
+                    <ChevronRight size={14} className="text-slate-300 group-hover:text-slate-400 transition-colors" />
+                  ) : isActive && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  )}
+                </Link>
+              )
+            })}
+            
+            <Link
+              href="/admin/settings"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-50/50 hover:text-slate-900 transition-all mt-4"
+            >
+              <Settings size={20} />
+              <span className="text-sm font-medium">Settings</span>
+            </Link>
           </nav>
-        </div>
 
-        <div className="mt-auto p-8 border-t border-card-border bg-gray-50/50">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-              <span className="material-symbols-outlined">person</span>
-            </div>
-            <div>
-              <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Logged in as</p>
-              <p className="text-sm font-bold text-site truncate max-w-[140px]">Administrator</p>
-            </div>
+          {/* Bottom Footer */}
+          <div className="mt-auto space-y-1">
+            <button className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-50/50 hover:text-slate-900 transition-all">
+              <HelpCircle size={20} />
+              <span className="text-sm font-medium">Support</span>
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-red-400 hover:bg-red-50 hover:text-red-500 transition-all"
+            >
+              <LogOut size={20} />
+              <span className="text-sm font-medium">Log out</span>
+            </button>
           </div>
-          <button 
-            onClick={handleLogout}
-            className="flex items-center gap-3 text-red-500 font-bold hover:bg-red-50 w-full px-4 py-3 rounded-xl transition-all"
-          >
-            <span className="material-symbols-outlined text-[20px]">logout</span>
-            Keluar
-          </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 ml-72 flex flex-col">
+      <div className="flex-1 ml-64 flex flex-col">
         {/* Top Header */}
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-card-border sticky top-0 z-10 px-12 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <span className="material-symbols-outlined text-gray-400">search</span>
+        <header className="h-16 bg-white/50 backdrop-blur-sm sticky top-0 z-10 px-8 flex items-center justify-between border-b border-white/20">
+          <div className="flex items-center gap-4 bg-slate-100/50 px-4 py-2 rounded-xl transition-all focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/10 border border-transparent focus-within:border-primary/20">
+            <Search size={18} className="text-slate-400" />
             <input 
               type="text" 
-              placeholder="Cari sesuatu..." 
-              className="bg-transparent outline-none font-medium text-sm w-64"
+              placeholder="Search..." 
+              className="bg-transparent outline-none font-medium text-sm w-64 text-slate-900"
             />
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-600 rounded-full border border-green-100">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              <span className="text-[10px] font-black uppercase tracking-wider">System Live</span>
-            </div>
-            
-            <div className="h-8 w-[1px] bg-gray-100"></div>
-
-            <button 
-              onClick={handleLogout}
-              className="flex items-center gap-2 text-gray-500 hover:text-red-500 transition-colors group"
-            >
-              <span className="text-sm font-bold">Logout</span>
-              <span className="material-symbols-outlined text-[20px] group-hover:translate-x-1 transition-transform">logout</span>
+          <div className="flex items-center gap-3">
+            <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-all relative">
+              <Bell size={20} />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
             </button>
+            <div className="h-8 w-[1px] bg-slate-200 mx-2" />
+            <div className="flex items-center gap-3 pl-2">
+              <div className="text-right">
+                <p className="text-xs font-bold text-slate-900">Admin Arunika</p>
+                <p className="text-[10px] text-slate-500">Super Admin</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200 overflow-hidden">
+                <User size={20} />
+              </div>
+            </div>
           </div>
         </header>
 
         {/* Dynamic Page Content */}
-        <main className="p-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <main className="p-8">
           {children}
         </main>
       </div>

@@ -1,3 +1,5 @@
+import Image from 'next/image'
+
 export default function Footer() {
   return (
     <footer className="bg-card border-t border-card-border py-12">
@@ -5,7 +7,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="space-y-4">
             <div className="flex items-center gap-3 mb-6">
-            <img src="/logo.png" alt="Arunika Logo" className="h-10 w-auto" />
+            <Image src="/logo.png" alt="Arunika Logo" width={40} height={40} className="h-10 w-auto" />
             <h2 className="text-lg font-bold tracking-tight text-site">Arunika</h2>
           </div>
             <p className="text-sm text-gray-500">

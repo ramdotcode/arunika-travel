@@ -1,11 +1,12 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-card-border">
       <div className="max-w-[1200px] mx-auto px-4 lg:px-10 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
-          <img src="/logo.png" alt="Arunika Logo" className="h-10 w-auto" />
+          <Image src="/logo.png" alt="Arunika Logo" width={40} height={40} className="h-10 w-auto" priority />
           <h2 className="text-xl font-bold tracking-tight text-site">Arunika</h2>
         </Link>
         <nav className="hidden md:flex items-center gap-8">

@@ -2,10 +2,53 @@
 
 import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
+import ImageUpload from "@/components/ImageUpload"
+import { 
+  Plus, 
+  Search, 
+  Edit2, 
+  Trash2, 
+  X, 
+  Clock, 
+  Users, 
+  Globe, 
+  MapPin,
+  MoreVertical,
+  CheckCircle2,
+  AlertTriangle,
+  Image as ImageIcon
+} from "lucide-react"
 
 export default function ToursManagement() {
   const [tours, setTours] = useState([])
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState("")
+  
+  // Form State
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [formMode, setFormMode] = useState("add") // "add" | "edit"
+  const [availableCategories, setAvailableCategories] = useState(["Domestik", "Internasional"])
+  const [isAddingNewCategory, setIsAddingNewCategory] = useState(false)
+  const [newCategory, setNewCategory] = useState("")
+  
+  const [formData, setFormData] = useState({
+    id: "",
+    name: "",
+    slug: "",
+    category: "Domestik",
+    price: "",
+    duration: "",
+    description: "",
+    image_url: "",
+    badge: "",
+    remaining_slots: ""
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Delete State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [tourToDelete, setTourToDelete] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     fetchTours()
@@ -20,6 +63,11 @@ export default function ToursManagement() {
 
       if (error) throw error
       setTours(data || [])
+      
+      const categories = [...new Set((data || []).map(t => t.category))]
+      if (categories.length > 0) {
+        setAvailableCategories(categories.sort())
+      }
     } catch (err) {
       console.error("Error fetching tours:", err)
     } finally {
@@ -27,116 +75,258 @@ export default function ToursManagement() {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus paket tour ini?")) return
+  const generateSlug = (name) => {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/[\s_-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+  }
 
-    try {
-      const { error } = await supabase.from("tours").delete().eq("id", id)
-      if (error) throw error
-      setTours(tours.filter(t => t.id !== id))
-    } catch (err) {
-      alert("Gagal menghapus paket: " + err.message)
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    if (name === "name") {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        slug: generateSlug(value)
+      }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
     }
   }
 
+  const openAddModal = () => {
+    setFormMode("add")
+    setFormData({
+      id: "",
+      name: "",
+      slug: "",
+      category: "Domestik",
+      price: "",
+      duration: "",
+      description: "",
+      image_url: "",
+      badge: "",
+      remaining_slots: ""
+    })
+    setIsAddingNewCategory(false)
+    setNewCategory("")
+    setIsFormOpen(true)
+  }
+
+  const openEditModal = (tour) => {
+    setFormMode("edit")
+    setFormData({
+      ...tour,
+      price: tour.price.toString(),
+      remaining_slots: tour.remaining_slots?.toString() || ""
+    })
+    setIsAddingNewCategory(false)
+    setNewCategory("")
+    setIsFormOpen(true)
+  }
+
+  const handleSave = async (e) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    try {
+      const finalCategory = isAddingNewCategory ? newCategory : formData.category
+      
+      const payload = {
+        name: formData.name,
+        slug: formData.slug,
+        category: finalCategory,
+        price: parseFloat(formData.price),
+        duration: formData.duration,
+        description: formData.description,
+        image_url: formData.image_url,
+        badge: formData.badge,
+        remaining_slots: formData.remaining_slots ? parseInt(formData.remaining_slots) : null
+      }
+
+      if (formMode === "add") {
+        const { data, error } = await supabase.from("tours").insert([payload]).select()
+        if (error) throw error
+        setTours([data[0], ...tours])
+      } else {
+        const { error } = await supabase.from("tours").update(payload).eq("id", formData.id)
+        if (error) throw error
+        setTours(tours.map(t => t.id === formData.id ? { ...t, ...payload } : t))
+      }
+
+      setIsFormOpen(false)
+    } catch (err) {
+      alert("Gagal menyimpan paket: " + err.message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const confirmDelete = async () => {
+    if (!tourToDelete) return
+    setIsDeleting(true)
+
+    try {
+      const { error } = await supabase.from("tours").delete().eq("id", tourToDelete.id)
+      if (error) throw error
+      setTours(tours.filter(t => t.id !== tourToDelete.id))
+      setIsDeleteModalOpen(false)
+    } catch (err) {
+      alert("Gagal menghapus paket: " + err.message)
+    } finally {
+      setIsDeleting(false)
+      setTourToDelete(null)
+    }
+  }
+
+  const filteredTours = tours.filter(tour => 
+    tour.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tour.category.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 pb-10">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-site text-gray-800">Manajemen Paket Tour</h1>
-          <p className="text-gray-500 font-medium mt-1">Kelola daftar perjalanan yang ditawarkan kepada pelanggan.</p>
+          <h1 className="text-3xl font-bold text-slate-900 italic">Tour Management</h1>
+          <p className="text-slate-500 text-sm mt-1 font-medium">Create and manage your travel packages efficiently.</p>
         </div>
-        <button className="bg-primary text-white px-6 py-3 rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all flex items-center gap-2">
-          <span className="material-symbols-outlined">add_circle</span>
-          Tambah Paket
+        <button 
+          onClick={openAddModal}
+          className="bg-primary hover:bg-primary/90 text-white px-5 py-3 rounded-xl font-bold transition-all flex items-center gap-2 shadow-lg shadow-primary/20 w-fit"
+        >
+          <Plus size={20} />
+          <span>New Tour Package</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-3xl border border-card-border overflow-hidden shadow-sm">
+      {/* Toolbar */}
+      <div className="flex flex-col md:flex-row items-center gap-4 bg-white p-4 rounded-2xl border border-slate-50 shadow-sm">
+        <div className="flex-1 min-w-0 w-full flex items-center gap-3 bg-slate-50/50 px-4 py-2 rounded-xl transition-all focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/10 border border-transparent focus-within:border-primary/20">
+          <Search size={18} className="text-slate-400" />
+          <input 
+            type="text" 
+            placeholder="Search packages by name or category..." 
+            className="bg-transparent outline-none font-medium text-sm w-full text-slate-900"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest px-2">{filteredTours.length} Packages</span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="bg-white rounded-[2rem] border border-slate-50 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left">
             <thead>
-              <tr className="bg-gray-50/50 border-b border-card-border">
-                <th className="px-6 py-5 text-sm font-black text-gray-400 uppercase tracking-widest">Paket Tour</th>
-                <th className="px-6 py-5 text-sm font-black text-gray-400 uppercase tracking-widest">Kategori</th>
-                <th className="px-6 py-5 text-sm font-black text-gray-400 uppercase tracking-widest">Harga</th>
-                <th className="px-6 py-5 text-sm font-black text-gray-400 uppercase tracking-widest">Durasi</th>
-                <th className="px-6 py-5 text-sm font-black text-gray-400 uppercase tracking-widest">Status / Slot</th>
-                <th className="px-6 py-5 text-sm font-black text-gray-400 uppercase tracking-widest text-right">Aksi</th>
+              <tr className="bg-slate-50/30 border-b border-slate-50">
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Package Details</th>
+                <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Category</th>
+                <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Duration</th>
+                <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pricing</th>
+                <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Availability</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-card-border">
+            <tbody className="divide-y divide-slate-50">
               {loading ? (
                 Array(3).fill(0).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan="6" className="px-6 py-8">
-                      <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                    <td colSpan="6" className="px-8 py-10">
+                      <div className="flex gap-4">
+                        <div className="w-16 h-16 bg-slate-50 rounded-2xl" />
+                        <div className="space-y-2 flex-1">
+                          <div className="h-4 bg-slate-50 rounded w-1/4" />
+                          <div className="h-3 bg-slate-50 rounded w-1/6" />
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ))
-              ) : tours.length === 0 ? (
+              ) : filteredTours.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-20 text-center text-gray-400 font-medium">
-                    Belum ada paket tour yang ditambahkan.
+                  <td colSpan="6" className="px-8 py-20 text-center">
+                    <div className="flex flex-col items-center justify-center text-slate-300">
+                      <ImageIcon size={48} strokeWidth={1} className="mb-4" />
+                      <p className="font-bold text-slate-400">No packages found</p>
+                      <p className="text-xs mt-1">Try resetting your search or add a new package.</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
-                tours.map((tour) => (
-                  <tr key={tour.id} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="px-6 py-5">
+                filteredTours.map((tour) => (
+                  <tr key={tour.id} className="hover:bg-slate-50/20 transition-all group">
+                    <td className="px-8 py-5">
                       <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 border border-card-border">
+                        <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-100/50 flex-shrink-0 relative">
                           {tour.image_url ? (
                             <img src={tour.image_url} alt={tour.name} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-300">
-                              <span className="material-symbols-outlined text-3xl">image</span>
+                            <div className="w-full h-full flex items-center justify-center text-slate-300">
+                              <ImageIcon size={24} />
+                            </div>
+                          )}
+                          {tour.badge && (
+                            <div className="absolute top-1 left-1 bg-primary text-white text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter">
+                              {tour.badge}
                             </div>
                           )}
                         </div>
-                        <div>
-                          <p className="font-bold text-site leading-tight">{tour.name}</p>
-                          <p className="text-xs text-gray-400 mt-1 font-medium italic">slug: {tour.slug}</p>
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-900 group-hover:text-primary transition-colors truncate">{tour.name}</p>
+                          <p className="text-[10px] text-slate-400 font-medium font-mono mt-0.5">{tour.slug}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-5">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                        tour.category === 'Internasional' ? 'bg-purple-50 text-purple-600 border border-purple-100' : 'bg-blue-50 text-blue-600 border border-blue-100'
-                      }`}>
-                        {tour.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5">
-                      <p className="font-black text-site">Rp {new Intl.NumberFormat('id-ID').format(tour.price)}</p>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-1.5 text-gray-500 font-bold">
-                        <span className="material-symbols-outlined text-sm">schedule</span>
-                        {tour.duration}
+                      <div className="flex items-center gap-2">
+                        {tour.category === "Internasional" ? (
+                          <Globe size={14} className="text-indigo-400" />
+                        ) : (
+                          <MapPin size={14} className="text-emerald-400" />
+                        )}
+                        <span className="text-xs font-bold text-slate-600">{tour.category}</span>
                       </div>
                     </td>
                     <td className="px-6 py-5">
-                      <div className="flex flex-col gap-1">
-                        {tour.badge && (
-                          <span className="text-[10px] font-bold text-orange-500">{tour.badge}</span>
-                        )}
-                        <span className="text-sm font-medium text-gray-400">
-                          {tour.remaining_slots ? `${tour.remaining_slots} Slot Tersisa` : 'Slot Tak Terbatas'}
+                      <div className="flex items-center gap-2 text-slate-500">
+                        <Clock size={14} />
+                        <span className="text-xs font-semibold">{tour.duration}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <p className="text-sm font-bold text-slate-900">
+                        Rp {new Intl.NumberFormat('id-ID').format(tour.price)}
+                      </p>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-1.5 h-1.5 rounded-full ${tour.remaining_slots === 0 ? 'bg-red-400' : 'bg-emerald-400'}`} />
+                        <span className="text-xs font-bold text-slate-600">
+                          {tour.remaining_slots ? `${tour.remaining_slots} Slots` : 'Unlimited'}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
-                          <span className="material-symbols-outlined">edit</span>
+                    <td className="px-8 py-5">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                        <button 
+                          onClick={() => openEditModal(tour)}
+                          className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                        >
+                          <Edit2 size={16} />
                         </button>
                         <button 
-                          onClick={() => handleDelete(tour.id)}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" 
-                          title="Hapus"
+                          onClick={() => { setTourToDelete(tour); setIsDeleteModalOpen(true); }}
+                          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                         >
-                          <span className="material-symbols-outlined">delete</span>
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
@@ -147,6 +337,236 @@ export default function ToursManagement() {
           </table>
         </div>
       </div>
+
+      {/* Form Modal */}
+      {isFormOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSubmitting && setIsFormOpen(false)} />
+          <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-4 duration-500">
+            <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 text-primary rounded-xl">
+                  {formMode === "add" ? <Plus size={20} /> : <Edit2 size={20} />}
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">
+                    {formMode === "add" ? "Create New Package" : "Edit Tour Details"}
+                  </h2>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Configuration Panel</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsFormOpen(false)}
+                className="p-2 hover:bg-white rounded-full transition-all text-slate-400 hover:text-slate-900 shadow-sm border border-transparent hover:border-slate-100"
+                disabled={isSubmitting}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSave} className="p-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6 md:col-span-2">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Package Name</label>
+                    <input 
+                      type="text" 
+                      name="name"
+                      required
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      placeholder="Enter tour name..."
+                      className="w-full px-5 py-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-slate-900"
+                    />
+                    <div className="flex items-center gap-2 px-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Permalink:</span>
+                      <span className="text-[10px] text-primary font-mono font-bold">arunika.com/tour/{formData.slug}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Category</label>
+                    <button 
+                      type="button"
+                      onClick={() => setIsAddingNewCategory(!isAddingNewCategory)}
+                      className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest"
+                    >
+                      {isAddingNewCategory ? "Cancel" : "+ Custom"}
+                    </button>
+                  </div>
+                  
+                  {isAddingNewCategory ? (
+                    <input 
+                      type="text"
+                      required
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      placeholder="New category name..."
+                      className="w-full px-5 py-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 focus:bg-white focus:border-primary outline-none transition-all font-bold text-slate-900"
+                    />
+                  ) : (
+                    <select 
+                      name="category"
+                      value={formData.category}
+                      onChange={handleInputChange}
+                      className="w-full px-5 py-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 focus:bg-white focus:border-primary outline-none transition-all font-bold text-slate-900 appearance-none cursor-pointer"
+                    >
+                      {availableCategories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Price (IDR)</label>
+                  <input 
+                    type="number" 
+                    name="price"
+                    required
+                    value={formData.price}
+                    onChange={handleInputChange}
+                    placeholder="e.g. 5000000"
+                    className="w-full px-5 py-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 focus:bg-white focus:border-primary outline-none transition-all font-bold text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Duration</label>
+                  <div className="relative">
+                    <Clock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="text" 
+                      name="duration"
+                      required
+                      value={formData.duration}
+                      onChange={handleInputChange}
+                      placeholder="e.g. 3D2N"
+                      className="w-full pl-11 pr-5 py-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 focus:bg-white focus:border-primary outline-none transition-all font-bold text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Badge (Optional)</label>
+                  <input 
+                    type="text" 
+                    name="badge"
+                    value={formData.badge}
+                    onChange={handleInputChange}
+                    placeholder="e.g. Best Seller"
+                    className="w-full px-5 py-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 focus:bg-white focus:border-primary outline-none transition-all font-bold text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
+                    <ImageIcon size={12} /> Cover Image
+                  </label>
+                  <div className="p-1 bg-slate-50 rounded-[2.5rem] border border-slate-100">
+                    <ImageUpload 
+                      value={formData.image_url} 
+                      onChange={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
+                      folder="tours"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
+                    <Users size={12} /> Slots
+                  </label>
+                  <input 
+                    type="number" 
+                    name="remaining_slots"
+                    value={formData.remaining_slots}
+                    onChange={handleInputChange}
+                    placeholder="Unlimited"
+                    className="w-full px-5 py-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 focus:bg-white focus:border-primary outline-none transition-all font-bold text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Short Description</label>
+                  <textarea 
+                    name="description"
+                    rows="3"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    placeholder="What's included in this trip?"
+                    className="w-full px-5 py-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 focus:bg-white focus:border-primary outline-none transition-all font-medium text-slate-600 resize-none text-sm"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div className="mt-10 flex gap-4">
+                <button 
+                  type="button"
+                  onClick={() => setIsFormOpen(false)}
+                  disabled={isSubmitting}
+                  className="flex-1 px-8 py-4 rounded-2xl font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all border border-transparent"
+                >
+                  Discard
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-[2] bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold shadow-xl shadow-slate-900/10 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <span>Save Integration</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isDeleting && setIsDeleteModalOpen(false)} />
+          <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm p-10 text-center animate-in zoom-in duration-300">
+            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-[2rem] flex items-center justify-center mb-6 mx-auto">
+              <AlertTriangle size={36} strokeWidth={2.5} />
+            </div>
+            
+            <h2 className="text-2xl font-bold text-slate-900">Delete Package?</h2>
+            <p className="text-sm text-slate-500 font-medium mt-3 mb-8">
+              Are you sure you want to delete <span className="text-slate-900 font-bold italic">"{tourToDelete?.name}"</span>? This action is permanent.
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="w-full bg-red-500 text-white px-6 py-4 rounded-2xl font-bold shadow-lg shadow-red-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isDeleting ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                  "Yes, Delete Forever"
+                )}
+              </button>
+              <button 
+                onClick={() => setIsDeleteModalOpen(false)}
+                disabled={isDeleting}
+                className="w-full px-6 py-4 rounded-2xl font-bold text-slate-400 hover:text-slate-600 transition-all"
+              >
+                Go Back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
